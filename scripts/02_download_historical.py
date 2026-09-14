@@ -1,6 +1,7 @@
 '''
 Acest script are rolul de a descarca datele istorice de la geogglows pentru statiile de interes de la GRDC.
 Interogarea se face pe baza id-ului LINKNO al statiei, iar datele sunt descarcate initial in format zarr.
+Ulterior pentru comparatie salvam si datele descarcate prin API-ul geoglows, pentru a vedea diferentele de timp de descarcare.
 '''
 
 # importam librariile necesare
