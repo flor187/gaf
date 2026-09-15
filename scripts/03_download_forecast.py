@@ -15,19 +15,26 @@ import geoglows
 cwd = Path.cwd()
 fila_statii = os.path.join(cwd, 'config', 'coords_stations.csv')
 data_folder_fcst = os.path.join(cwd, 'data_init', 'forecast')
+data_benchmark = os.path.join(cwd, 'benchmark')
 
 # asiguram existenta folderului de export
 Path(data_folder_fcst).mkdir(parents=True, exist_ok=True)
+Path(data_benchmark).mkdir(parents=True, exist_ok=True)
 
 # incarcare datele cu statiile de interes
 df_stations = pd.read_csv(fila_statii)
 reachs = df_stations['LINKNO'].tolist()
 names = df_stations['NAME'].tolist()
 
+benchmark_df = pd.DataFrame(columns=['tip', 'durata'])
+
 # GREU DE DESCARCAT DIN AWS S3, DEOARECE TREBUIE COMPUS ZILNIC LINKUL
 # Asadar, pentru descarcare folosim API-ul geoglows
 t1 = datetime.now()
 data = t1.strftime('%Y%m%d')
+# se pare ca trebuie sa revin cu o zi in urma
+data = (t1 - timedelta(days=1)).strftime('%Y%m%d') # acesta linie se va comenta dupa ce se rezolva problema cu descarcarea datelor de prognoza pentru ziua curenta
+
 all_stats_xr = geoglows.data.forecast_stats(river_id=reachs, date=data, data_source='aws', format='xarray' )
 all_ens_df = geoglows.data.forecast_ensembles(river_id=reachs, date=data, data_source='aws', format='df' )
 flat_ens_df = all_ens_df.reset_index()
@@ -49,6 +56,12 @@ for i in range(len(reachs)):
 
 t2 = datetime.now()
 print(f'Durata descarcarii datelor de prognoza: {t2 - t1}') 
+benchmark_df.loc[len(benchmark_df)] = {'tip': 'forecast_all_api', 'durata': t2 - t1}
+
+
+# saLvam benchmark-ul intr-un fisier csv
+benchmark_file = os.path.join(data_benchmark, 'benchmark_forecast.csv')
+benchmark_df.to_csv(benchmark_file, index=False)
 print('Toate datele de prognoza au fost descarcate cu succes!')
 print('FB')
 
