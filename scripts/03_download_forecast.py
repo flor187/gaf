@@ -3,6 +3,7 @@ Acest script are rolul de a descarca datele de prognoza de la geogglows pentru s
 Interogarea se face pe baza id-ului LINKNO al statiei, iar datele sunt descarcate initial in format zarr.
 Ulterior pentru comparatie salvam si datele descarcate prin API-ul geoglows, pentru a vedea diferentele de timp de descarcare.
 '''
+
 # importam librariile necesare
 import os
 import xarray as xr
@@ -10,6 +11,8 @@ import pandas as pd
 from pathlib import Path
 from datetime import datetime, timedelta
 import geoglows 
+
+t0 = datetime.now()
 
 # stabilire cai pentru fisierele de date
 cwd = Path.cwd()
@@ -47,7 +50,7 @@ for i in range(len(reachs)):
     output_filename_s = os.path.join(data_folder_fcst, f'{locname}_forecast_stats.csv')
     station_df_s.to_csv(output_filename_s, index=True)
 
-    station_df_e = flat_ens_df[flat_ens_df.loc[:, 'river_id']==reachs[0]] 
+    station_df_e = flat_ens_df[flat_ens_df.loc[:, 'river_id']==reach] 
     station_df_e = station_df_e.drop(columns=['river_id'])
     output_filename_e = os.path.join(data_folder_fcst, f'{locname}_forecast_ensembles.csv')
     station_df_e.to_csv(output_filename_e, index=False)
@@ -55,9 +58,31 @@ for i in range(len(reachs)):
     print(f'Datele de prognoza ensembles pentru statia {locname} au fost salvate in fisierul: {output_filename_e}')
 
 t2 = datetime.now()
-print(f'Durata descarcarii datelor de prognoza: {t2 - t1}') 
+print(f'Durata descarcarii toate pe API datelor de prognoza: {t2 - t1}') 
 benchmark_df.loc[len(benchmark_df)] = {'tip': 'forecast_all_api', 'durata': t2 - t1}
 
+t3 = datetime.now()
+# acum incercam sa facem bucla si sa interogam din API cate o statie in parte
+for i in range(len(reachs)):
+    reach = reachs[i]
+    locname = names[i].replace(' ', '_')
+    stats_df = geoglows.data.forecast_stats(river_id=reach, date=data, data_source='aws', format='df' )
+    ens_df = geoglows.data.forecast_ensembles(river_id=reach, date=data, data_source='aws', format='df' )
+    # salvarea ambelor tipuri de date in fisiere csv
+    output_filename_s = os.path.join(data_folder_fcst, f'{locname}_forecast_stats_individual.csv')
+    stats_df.to_csv(output_filename_s, index=True)
+    output_filename_e = os.path.join(data_folder_fcst, f'{locname}_forecast_ensembles_individual.csv')
+    ens_df.to_csv(output_filename_e, index=True)
+    print(f'Datele de prognoza stats pentru statia {locname} au fost salvate in fisierul: {output_filename_s}')
+    print(f'Datele de prognoza ensembles pentru statia {locname} au fost salvate in fisierul: {output_filename_e}')    
+
+t4 = datetime.now()
+print(f'Durata descarcarii individual pe API datelor de prognoza: {t4 - t3}') 
+benchmark_df.loc[len(benchmark_df)] = {'tip': f'forecast_individual_api', 'durata': t4 - t3}
+# adaugare timp total la interogari 
+benchmark_df.loc[len(benchmark_df)] = {'tip': f'forecast_total_api', 'durata': t4 - t1}
+# adaugare timp total pe tot scriptul
+benchmark_df.loc[len(benchmark_df)] = {'tip': f'forecast_total_script', 'durata': t4 - t0}  
 
 # saLvam benchmark-ul intr-un fisier csv
 benchmark_file = os.path.join(data_benchmark, 'benchmark_forecast.csv')
