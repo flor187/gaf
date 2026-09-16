@@ -36,7 +36,7 @@ benchmark_df = pd.DataFrame(columns=['tip', 'durata'])
 t1 = datetime.now()
 data = t1.strftime('%Y%m%d')
 # se pare ca trebuie sa revin cu o zi in urma
-data = (t1 - timedelta(days=1)).strftime('%Y%m%d') # acesta linie se va comenta dupa ce se rezolva problema cu descarcarea datelor de prognoza pentru ziua curenta
+# data = (t1 - timedelta(days=1)).strftime('%Y%m%d') # acesta linie se va comenta dupa ce se rezolva problema cu descarcarea datelor de prognoza pentru ziua curenta
 
 all_stats_xr = geoglows.data.forecast_stats(river_id=reachs, date=data, data_source='aws', format='xarray' )
 all_ens_df = geoglows.data.forecast_ensembles(river_id=reachs, date=data, data_source='aws', format='df' )
