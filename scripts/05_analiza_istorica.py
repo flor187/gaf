@@ -1,6 +1,8 @@
 '''
 Acest script are rolul de a analiza datele istorice de la geoglows pentru statiile de interes de la GRDC.
 Testez metoda initiala de bias correction care e disponibila in geoglows. 
+Mai adaug o modalitate de corectie Quantile Mapping. E provenita din libraria aceasta
+https://pankajkarman.github.io/bias_correction/bias_correction.html#installation
 '''
 
 # importam librariile necesare
@@ -10,6 +12,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import geoglows 
 import plotly.graph_objects as go
+from bias_correction import BiasCorrection
 
 t0 = datetime.now()
 
@@ -60,9 +63,43 @@ for name in names:
         observed= df_grdc
     )
     # salvare tabel cu metrice
-    Path(data_folder_analiza, f'{name}_metrice.html').write_text(tbl, encoding='utf-8')
+    Path(data_folder_analiza, f'{name}_metrice_gw.html').write_text(tbl, encoding='utf-8')
     # salvare dataframe corectat 
     df_hist_cr.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_corectat_Q_Day.csv'))
+
+    # acum aplicam functiile de bias Gamma Mapping din libraria bias_correction
+    df_hist_qm = df_hist.copy()
+    bc = BiasCorrection(obs_data=df_grdc['Value'], mod_data=df_hist['Q'], sce_data=df_hist_qm['Q'])
+    gqm = bc.correct(method='gamma_mapping', lower_limit=0.1)
+    ggqm = pd.DataFrame(gqm)
+
+    gbqm = geoglows.bias.statistics_tables(
+        corrected= ggqm,
+        simulated= df_hist,
+        observed= df_grdc
+    )
+
+    # salvare tabel cu metrice
+    Path(data_folder_analiza, f'{name}_metrice_gqm.html').write_text(gbqm, encoding='utf-8')
+    # salvare dataframe corectat 
+    df_hist_qm.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_gqm_Q_Day.csv'))
+
+    # acum aplicam functiile de bias Quantile Mapping din libraria bias_correction
+    df_hist_qm = df_hist.copy()
+    bc = BiasCorrection(obs_data=df_grdc['Value'], mod_data=df_hist['Q'], sce_data=df_hist_qm['Q'])
+    bqm = bc.correct(method='basic_quantile')
+    bbqm = pd.DataFrame(bqm)
+
+    tbqm = geoglows.bias.statistics_tables(
+        corrected= bbqm,
+        simulated= df_hist,
+        observed= df_grdc
+    )
+
+    # salvare tabel cu metrice
+    Path(data_folder_analiza, f'{name}_metrice_bqm.html').write_text(tbqm, encoding='utf-8')
+    # salvare dataframe corectat 
+    df_hist_qm.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_bqm_Q_Day.csv'))
 
     # plotam cu plotly
     fig = go.Figure()
@@ -79,9 +116,28 @@ for name in names:
         x=df_hist_cr.index,
         y=df_hist_cr['Corrected Simulated Streamflow'],
         mode='lines',
-        name='Bias Simulate',
+        name='Bias Geoglows',
         line=dict(color='rgba(50, 157, 196, 0.8)', width=3)
     ))
+
+    fig.add_trace(go.Scatter(
+        x=df_hist_cr.index,
+        y=bbqm['Q'],
+        mode='lines',
+        name='Bias Basic QM',
+        line=dict(color='rgba(50, 245, 150, 0.8)', width=3)
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df_hist_cr.index,
+        y=ggqm[0],
+        mode='lines',
+        name='Bias Gamma Quantile',
+        line=dict(color='rgba(245, 50, 150, 0.8)', width=3)
+    ))    
+
+    # La corectia Gamma Quantile Mapping da prost KGE-urile la urmatoarele statii: Arad, Bistra, Ceatal, 
+    # Hoghiz, Orsova, Podari, Radauti, Sag
 
     fig.add_trace(go.Scatter(
         x=df_grdc.index,
