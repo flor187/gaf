@@ -67,23 +67,6 @@ for name in names:
     # salvare dataframe corectat 
     df_hist_cr.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_corectat_Q_Day.csv'))
 
-    # acum aplicam functiile de bias Gamma Mapping din libraria bias_correction
-    df_hist_qm = df_hist.copy()
-    bc = BiasCorrection(obs_data=df_grdc['Value'], mod_data=df_hist['Q'], sce_data=df_hist_qm['Q'])
-    gqm = bc.correct(method='gamma_mapping', lower_limit=0.1)
-    ggqm = pd.DataFrame(gqm)
-
-    gbqm = geoglows.bias.statistics_tables(
-        corrected= ggqm,
-        simulated= df_hist,
-        observed= df_grdc
-    )
-
-    # salvare tabel cu metrice
-    Path(data_folder_analiza, f'{name}_metrice_gqm.html').write_text(gbqm, encoding='utf-8')
-    # salvare dataframe corectat 
-    df_hist_qm.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_gqm_Q_Day.csv'))
-
     # acum aplicam functiile de bias Quantile Mapping din libraria bias_correction
     df_hist_qm = df_hist.copy()
     bc = BiasCorrection(obs_data=df_grdc['Value'], mod_data=df_hist['Q'], sce_data=df_hist_qm['Q'])
@@ -127,17 +110,6 @@ for name in names:
         name='Bias Basic QM',
         line=dict(color='rgba(50, 245, 150, 0.8)', width=3)
     ))
-
-    fig.add_trace(go.Scatter(
-        x=df_hist_cr.index,
-        y=ggqm[0],
-        mode='lines',
-        name='Bias Gamma Quantile',
-        line=dict(color='rgba(245, 50, 150, 0.8)', width=3)
-    ))    
-
-    # La corectia Gamma Quantile Mapping da prost KGE-urile la urmatoarele statii: Arad, Bistra, Ceatal, 
-    # Hoghiz, Orsova, Podari, Radauti, Sag
 
     fig.add_trace(go.Scatter(
         x=df_grdc.index,
