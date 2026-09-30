@@ -24,6 +24,8 @@ data_folder_grdc = os.path.join(cwd,'grdc_obs')
 data_folder_analiza = os.path.join(cwd, 'analiza', 'analiza_istorica')
 data_folder_plot = os.path.join(cwd, 'data_init', 'plot_historical')
 data_benchmark = os.path.join(cwd, 'benchmark')
+start_date = pd.Timestamp('1991-01-01')
+end_date = pd.Timestamp('2020-12-31')
 
 # asiguram existenta folderului de export
 Path(data_folder_plot).mkdir(parents=True, exist_ok=True)
@@ -42,11 +44,13 @@ for name in names:
     df_grdc = pd.read_csv(os.path.join(data_folder_grdc, f'{name}_Q_Day.csv'))
     df_grdc['date'] = pd.to_datetime(df_grdc['date'])
     df_grdc = df_grdc.dropna(subset=['date']).sort_values('date').set_index('date')
+    df_grdc = df_grdc.loc[start_date:end_date]
 
     # deschidem si pregatim pentru datele istorice de la geoglows
     df_hist = pd.read_csv(os.path.join(data_folder_hist, f'{name}_historical_Q_Daily.csv'))
     df_hist['time'] = pd.to_datetime(df_hist['time'])
     df_hist = df_hist.dropna(subset=['time']).sort_values('time').set_index('time')
+    df_hist = df_hist.loc[start_date:end_date]
 
     # pastreaza intreg intervalul din GRDC
     df_hist = df_hist.reindex(df_grdc.index)
