@@ -12,6 +12,8 @@ Proiectul combină:
 - analize comparative și corecții de bias;
 - exporturi CSV și ploturi HTML/Plotly pentru interpretare vizuală.
 
+Platforma web GeoGlows poate fi accesată la [GeoGlows RFS](https://apps.geoglows.org/rfs#lon=25.00&lat=46.00&zoom=7.00&definition=Romania). Pentru instruire privind utilizarea platformei web, consultați [webinarul GeoGlows RFS v2](https://training.geoglows.org/webinars/rfs-v2-webinar-4/).
+
 ## Cerințe
 
 - Python 3.12
@@ -159,5 +161,4 @@ Astfel, pentru fiecare stație GRDC se obține un fișier CSV gata de utilizare 
 - Majoritatea scripturilor presupun că rulezi comanda din directorul proiectului și că `config/coords_stations.csv` există și este corect populat.
 - Fișierele generate sunt în principal CSV, HTML și grafice Plotly.
 - Proiectul este orientat către cercetarea și evaluarea performanței modelelor de debit în contextul hydrologiei și predictivului pe bază de GeoGlows.
-
 
