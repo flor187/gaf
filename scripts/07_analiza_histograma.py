@@ -97,6 +97,33 @@ def add_quantile_table(
     quantile_labels = [f"Q {quantile:.0%}" for quantile in QUANTILES]
     observed_quantiles = [f"{observed.quantile(q):.2f}" for q in QUANTILES]
     simulated_quantiles = [f"{simulated.quantile(q):.2f}" for q in QUANTILES]
+
+    figure.add_trace(
+        go.Table(
+            header=dict(
+                values=["Cuantila", "Observat", "Simulat"],
+                fill_color="#e8eef3",
+                align="left",
+            ),
+            cells=dict(
+                values=[quantile_labels, observed_quantiles, simulated_quantiles],
+                fill_color="white",
+                align=["left", "right", "right"],
+                height=24,
+            ),
+        ),
+        row=row,
+        col=column,
+    )
+
+
+def add_performance_table(
+    figure: go.Figure,
+    observed: pd.Series,
+    simulated: pd.Series,
+    row: int,
+    column: int,
+) -> None:
     nse, pbias, kge, correlation, alpha, beta = calculate_metrics(
         observed,
         simulated,
@@ -105,15 +132,13 @@ def add_quantile_table(
     figure.add_trace(
         go.Table(
             header=dict(
-                values=["Cuantila / metric", "Observat", "Simulat"],
+                values=["Indicator", "Valoare"],
                 fill_color="#e8eef3",
                 align="left",
             ),
             cells=dict(
                 values=[
-                    ["PBIAS (%)", "NSE", "KGE-2009", "r", "alpha", "beta"]
-                    + quantile_labels,
-                    ["-"] * 6 + observed_quantiles,
+                    ["PBIAS (%)", "NSE", "KGE-2009", "r", "alpha", "beta"],
                     [
                         format_metric(pbias),
                         format_metric(nse),
@@ -121,12 +146,11 @@ def add_quantile_table(
                         format_metric(correlation),
                         format_metric(alpha),
                         format_metric(beta),
-                    ]
-                    + simulated_quantiles,
+                    ],
                 ],
                 fill_color="white",
-                align=["left", "right", "right"],
-                height=20,
+                align=["left", "right"],
+                height=24,
             ),
         ),
         row=row,
@@ -149,27 +173,34 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
 
     figure = make_subplots(
         rows=3,
-        cols=2,
+        cols=4,
         specs=[
-            [{"type": "xy"}, {"type": "xy"}],
-            [{"type": "table"}, {"type": "table"}],
-            [{"type": "xy"}, {"type": "xy"}],
+            [
+                {"type": "xy", "colspan": 2},
+                None,
+                {"type": "xy", "colspan": 2},
+                None,
+            ],
+            [
+                {"type": "table"},
+                {"type": "table"},
+                {"type": "table"},
+                {"type": "table"},
+            ],
+            [
+                {"type": "xy", "colspan": 2},
+                None,
+                {"type": "xy", "colspan": 2},
+                None,
+            ],
         ],
         row_heights=[0.40, 0.23, 0.37],
         vertical_spacing=0.08,
-        subplot_titles=[
-            "Seria de date inainte de Quantile Mapping",
-            "Seria de date dupa Quantile Mapping",
-            "Cuantile si indicatori inainte",
-            "Cuantile si indicatori dupa",
-            "Distributii inainte de Quantile Mapping",
-            "Distributii dupa Quantile Mapping",
-        ],
     )
 
     for column, simulated_series, simulated_name in (
         (1, simulated, "Simulat GeoGlows"),
-        (2, corrected, "Simulat dupa QM"),
+        (3, corrected, "Simulat dupa QM"),
     ):
         figure.add_trace(
             go.Histogram(
@@ -200,7 +231,20 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
             col=column,
         )
 
-        add_quantile_table(figure, observed, simulated_series, row=2, column=column)
+        add_performance_table(
+            figure,
+            observed,
+            simulated_series,
+            row=2,
+            column=column,
+        )
+        add_quantile_table(
+            figure,
+            observed,
+            simulated_series,
+            row=2,
+            column=column + 1,
+        )
 
         figure.add_trace(
             go.Scatter(
@@ -233,6 +277,61 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
         figure.update_xaxes(title_text="Debit (m³/s)", row=3, col=column)
         figure.update_yaxes(title_text="Debit (m³/s)", row=1, col=column)
         figure.update_yaxes(title_text="Zile in interval (%)", row=3, col=column)
+
+    table_traces = [trace for trace in figure.data if isinstance(trace, go.Table)]
+    title_specs = [
+        (
+            "Seria de date inainte de Quantile Mapping",
+            figure.layout.xaxis.domain,
+            figure.layout.yaxis.domain[1],
+        ),
+        (
+            "Seria de date dupa Quantile Mapping",
+            figure.layout.xaxis2.domain,
+            figure.layout.yaxis2.domain[1],
+        ),
+        (
+            "Indicatori de performanta inainte",
+            table_traces[0].domain.x,
+            table_traces[0].domain.y[1],
+        ),
+        (
+            "Cuantile inainte",
+            table_traces[1].domain.x,
+            table_traces[1].domain.y[1],
+        ),
+        (
+            "Indicatori de performanta dupa",
+            table_traces[2].domain.x,
+            table_traces[2].domain.y[1],
+        ),
+        (
+            "Cuantile dupa",
+            table_traces[3].domain.x,
+            table_traces[3].domain.y[1],
+        ),
+        (
+            "Distributii inainte de Quantile Mapping",
+            figure.layout.xaxis3.domain,
+            figure.layout.yaxis3.domain[1],
+        ),
+        (
+            "Distributii dupa Quantile Mapping",
+            figure.layout.xaxis4.domain,
+            figure.layout.yaxis4.domain[1],
+        ),
+    ]
+    for text, x_domain, y in title_specs:
+        figure.add_annotation(
+            text=text,
+            x=(x_domain[0] + x_domain[1]) / 2,
+            y=y,
+            xref="paper",
+            yref="paper",
+            xanchor="center",
+            yanchor="bottom",
+            showarrow=False,
+        )
 
     figure.update_layout(
         title=(
