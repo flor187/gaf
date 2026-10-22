@@ -175,7 +175,7 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
             go.Histogram(
                 x=observed,
                 name="Observat GRDC",
-                histnorm="probability density",
+                histnorm="percent",
                 xbins=bins,
                 opacity=0.65,
                 marker_color="#2585c5",
@@ -189,7 +189,7 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
             go.Histogram(
                 x=simulated_series,
                 name=simulated_name,
-                histnorm="probability density",
+                histnorm="percent",
                 xbins=bins,
                 opacity=0.60,
                 marker_color="#f28e2b",
@@ -232,7 +232,7 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
         figure.update_xaxes(title_text="Data", row=1, col=column)
         figure.update_xaxes(title_text="Debit (m³/s)", row=3, col=column)
         figure.update_yaxes(title_text="Debit (m³/s)", row=1, col=column)
-        figure.update_yaxes(title_text="Densitate de probabilitate", row=3, col=column)
+        figure.update_yaxes(title_text="Zile in interval (%)", row=3, col=column)
 
     figure.update_layout(
         title=(
