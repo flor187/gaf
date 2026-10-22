@@ -57,14 +57,17 @@ gaf/
 ├── grdc_obs/
 │   └── fișiere CSV și CMD ale stațiilor GRDC
 ├── analiza/
-│   └── analiza_istorica/
+│   ├── analiza_istorica/
+│   └── analiza_histograma/
 ├── benchmark/
 ├── scripts/
 │   ├── 01_aranjare_plotare_date_grdc.py
 │   ├── 02_download_historical.py
 │   ├── 03_download_forecast.py
 │   ├── 04_plot_forecast.py
-│   └── 05_analiza_istorica.py
+│   ├── 05_analiza_istorica.py
+│   ├── 06_analiza_prognoza.py
+│   └── 07_analiza_histograma.py
 ├── environment.yml
 ├── README.md
 ├── LICENSE
@@ -113,6 +116,17 @@ Folderul `scripts/` conține fluxul principal de lucru al proiectului. În preze
 - generează metrici statistice HTML și grafice comparative;
 - exportă fișiere în folderul `analiza/analiza_istorica/`.
 
+### 6. `06_analiza_prognoza.py`
+
+- compară prognozele GeoGlows cu observațiile GRDC;
+- aplică corecția de bias și exportă seriile și graficele prognozelor.
+
+### 7. `07_analiza_histograma.py`
+
+- compară distribuțiile debitelor observate GRDC cu cele GeoGlows, înainte și după Quantile Mapping;
+- afișează perioada analizată, cuantilele, indicatorii NSE/PBIAS și KGE-2009 (KGE, r, alpha, beta), precum și seriile temporale în grafice Plotly interactive;
+- exportă câte un fișier HTML per stație, cu sufixul `_histograma_bqm.html`, în `analiza/analiza_histograma/`.
+
 ## Flux de lucru recomandat
 
 În general, ordinea de rulare este:
@@ -121,7 +135,9 @@ Folderul `scripts/` conține fluxul principal de lucru al proiectului. În preze
 2. descărcarea datelor istorice cu `02_download_historical.py`;
 3. descărcarea datelor de prognoză cu `03_download_forecast.py`;
 4. generate ploturi pentru prognoză cu `04_plot_forecast.py`;
-5. analiza comparativă istorică cu `05_analiza_istorica.py`.
+5. analiza comparativă istorică cu `05_analiza_istorica.py`;
+6. analiza prognozei cu `06_analiza_prognoza.py`;
+7. generarea histogramelor comparative cu `07_analiza_histograma.py`.
 
 ## Descarcarea datelor GRDC
 
@@ -161,4 +177,3 @@ Astfel, pentru fiecare stație GRDC se obține un fișier CSV gata de utilizare 
 - Majoritatea scripturilor presupun că rulezi comanda din directorul proiectului și că `config/coords_stations.csv` există și este corect populat.
 - Fișierele generate sunt în principal CSV, HTML și grafice Plotly.
 - Proiectul este orientat către cercetarea și evaluarea performanței modelelor de debit în contextul hydrologiei și predictivului pe bază de GeoGlows.
-

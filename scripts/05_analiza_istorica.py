@@ -86,7 +86,7 @@ for name in names:
     # salvare tabel cu metrice
     Path(data_folder_analiza, f'{name}_metrice_bqm.html').write_text(tbqm, encoding='utf-8')
     # salvare dataframe corectat 
-    df_hist_qm.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_bqm_Q_Day.csv'))
+    bbqm.to_csv(os.path.join(data_folder_analiza, f'{name}_hist_bqm_Q_Day.csv'))
 
     # plotam cu plotly
     fig = go.Figure()
