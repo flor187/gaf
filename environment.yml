@@ -1,6 +1,7 @@
 name: gaf
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - python=3.12
   - geoglows
