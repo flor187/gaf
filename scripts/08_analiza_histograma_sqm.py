@@ -14,8 +14,8 @@ from plotly.subplots import make_subplots
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-START_DATE = pd.Timestamp("1961-01-01")
-END_DATE = pd.Timestamp("1990-12-31")
+START_DATE = pd.Timestamp("1991-01-01")
+END_DATE = pd.Timestamp("2020-12-31")
 QUANTILES = (0.05, 0.25, 0.50, 0.75, 0.95, 0.99)
 
 
@@ -98,8 +98,11 @@ def add_quantile_table(
     column: int,
 ) -> None:
     quantile_labels = [f"Q {quantile:.0%}" for quantile in QUANTILES]
+    quantile_labels.append("Media aritmetica")
     observed_quantiles = [f"{observed.quantile(q):.2f}" for q in QUANTILES]
+    observed_quantiles.append(f"{observed.mean():.2f}")
     simulated_quantiles = [f"{simulated.quantile(q):.2f}" for q in QUANTILES]
+    simulated_quantiles.append(f"{simulated.mean():.2f}")
 
     figure.add_trace(
         go.Table(
@@ -141,7 +144,9 @@ def add_performance_table(
             ),
             cells=dict(
                 values=[
-                    ["PBIAS (%)", "NSE", "KGE-2012", "corelatia pearson", "alpha", "gama"],
+                    ["PBIAS (%) | eroare volum", "NSE | eroarea patratelor", "KGE-2012 | indice diagnoza", 
+                     "corelatia pearson | ritmul", "alpha | marimea variatiilor", "gama | forma variatiilor",
+                     "beta | volumul"],
                     [
                         format_metric(pbias),
                         format_metric(nse),
@@ -149,6 +154,7 @@ def add_performance_table(
                         format_metric(correlation),
                         format_metric(alpha),
                         format_metric(gama),
+                        format_metric(beta),
                     ],
                 ],
                 fill_color="white",
