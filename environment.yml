@@ -7,4 +7,5 @@ dependencies:
   - geoglows
   - pytz
   - lxml
+  - python-kaleido
 
