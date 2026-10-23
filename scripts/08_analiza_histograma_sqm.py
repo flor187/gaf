@@ -9,13 +9,13 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import geoglows
-from HydroErr import kge_2009
+import HydroErr as he
 from plotly.subplots import make_subplots
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-START_DATE = pd.Timestamp("1991-01-01")
-END_DATE = pd.Timestamp("2020-12-31")
+START_DATE = pd.Timestamp("1961-01-01")
+END_DATE = pd.Timestamp("1990-12-31")
 QUANTILES = (0.05, 0.25, 0.50, 0.75, 0.95, 0.99)
 
 
@@ -69,11 +69,12 @@ def calculate_metrics(
         else float("nan")
     )
 
-    correlation, alpha, beta, kge = kge_2009(
+    correlation, gama, beta, kge = he.kge_2012(
         simulated.to_numpy(),
         observed.to_numpy(),
         return_all=True,
     )
+    alpha = gama*beta
     return (
         float(nse),
         float(pbias),
@@ -81,6 +82,7 @@ def calculate_metrics(
         float(correlation),
         float(alpha),
         float(beta),
+        float(gama),
     )
 
 
@@ -125,7 +127,7 @@ def add_performance_table(
     row: int,
     column: int,
 ) -> None:
-    nse, pbias, kge, correlation, alpha, beta = calculate_metrics(
+    nse, pbias, kge, correlation, alpha, beta, gama = calculate_metrics(
         observed,
         simulated,
     )
@@ -139,14 +141,14 @@ def add_performance_table(
             ),
             cells=dict(
                 values=[
-                    ["PBIAS (%)", "NSE", "KGE-2009", "r", "alpha", "beta"],
+                    ["PBIAS (%)", "NSE", "KGE-2012", "corelatia pearson", "alpha", "gama"],
                     [
                         format_metric(pbias),
                         format_metric(nse),
                         format_metric(kge),
                         format_metric(correlation),
                         format_metric(alpha),
-                        format_metric(beta),
+                        format_metric(gama),
                     ],
                 ],
                 fill_color="white",
