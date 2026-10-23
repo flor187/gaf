@@ -8,4 +8,5 @@ dependencies:
   - pytz
   - lxml
   - python-kaleido
+  - bias_correction
 
