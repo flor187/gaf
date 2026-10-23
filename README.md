@@ -68,6 +68,7 @@ gaf/
 │   ├── 05_analiza_istorica.py
 │   ├── 06_analiza_prognoza.py
 │   └── 07_analiza_histograma.py
+├── 09_analiza_histograma_personalizat.py
 ├── environment.yml
 ├── README.md
 ├── LICENSE
@@ -127,6 +128,13 @@ Folderul `scripts/` conține fluxul principal de lucru al proiectului. În preze
 - afișează perioada analizată, cuantilele, indicatorii NSE/PBIAS și KGE-2009 (KGE, r, alpha, beta), precum și seriile temporale în grafice Plotly interactive;
 - exportă câte un fișier HTML per stație, cu sufixul `_histograma_bqm.html`, în `analiza/analiza_histograma/`.
 
+### 9. `09_analiza_histograma_personalizat.py`
+
+- generează analiza QM și serii temporale interactive pe baza scriptului `07_analiza_histograma.py`;
+- la zoom pe oricare dintre seriile temporale, recalculează indicatorii, cuantilele și histogramele pentru intervalul vizibil;
+- permite introducerea manuală a datelor de început și de sfârșit, cu actualizarea acelorași rezultate;
+- exportă fișierele HTML per stație în `analiza/analiza_histograma_personalizat/`.
+
 ## Flux de lucru recomandat
 
 În general, ordinea de rulare este:
@@ -138,6 +146,7 @@ Folderul `scripts/` conține fluxul principal de lucru al proiectului. În preze
 5. analiza comparativă istorică cu `05_analiza_istorica.py`;
 6. analiza prognozei cu `06_analiza_prognoza.py`;
 7. generarea histogramelor comparative cu `07_analiza_histograma.py`.
+8. generarea analizelor interactive pe intervalul vizibil cu `09_analiza_histograma_personalizat.py`.
 
 ## Descarcarea datelor GRDC
 
