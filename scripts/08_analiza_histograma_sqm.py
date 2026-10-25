@@ -1,7 +1,7 @@
 
 
-"""Compara distributiile si seriile de debite inainte si dupa Seasonal Quantile Mapping.
-Seasonal Quantile mapping este metoda de Quantile Mapping implicita din libraria geoglows."""
+"""Compara distributiile si seriile de debite inainte si dupa Monthly Quantile Mapping.
+Monthly Quantile mapping este metoda de Quantile Mapping implicita din libraria geoglows."""
 
 from pathlib import Path
 
@@ -289,12 +289,12 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
 
     title_specs = [
         (
-            "Seria de date inainte de Seasonal Quantile Mapping",
+            "Seria de date inainte de Monthly Quantile Mapping",
             figure.layout.xaxis.domain,
             figure.layout.yaxis.domain[1],
         ),
         (
-            "Seria de date dupa Seasonal Quantile Mapping",
+            "Seria de date dupa Monthly Quantile Mapping",
             figure.layout.xaxis2.domain,
             figure.layout.yaxis2.domain[1],
         ),
@@ -319,12 +319,12 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
             figure.data[9].domain.y[1],
         ),
         (
-            "Distributii inainte de Seasonal Quantile Mapping",
+            "Distributii inainte de Monthly Quantile Mapping",
             figure.layout.xaxis3.domain,
             figure.layout.yaxis3.domain[1],
         ),
         (
-            "Distributii dupa Seasonal Quantile Mapping",
+            "Distributii dupa Monthly Quantile Mapping",
             figure.layout.xaxis4.domain,
             figure.layout.yaxis4.domain[1],
         ),
