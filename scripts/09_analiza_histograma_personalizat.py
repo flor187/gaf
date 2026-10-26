@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 BASE_ANALYSIS = runpy.run_path(
     str(PROJECT_ROOT / "scripts" / "07_analiza_histograma.py")
 )
@@ -15,13 +15,17 @@ START_DATE = BASE_ANALYSIS["START_DATE"]
 END_DATE = BASE_ANALYSIS["END_DATE"]
 
 
-def build_range_update_script(name: str, data: pd.DataFrame) -> str:
+def build_range_update_script(
+    name: str,
+    data: pd.DataFrame,
+    corrected_column: str = "Simulat dupa QM",
+) -> str:
     source = json.dumps(
         {
             "dates": data.index.strftime("%Y-%m-%d").tolist(),
             "observed": data["Observat"].astype(float).tolist(),
             "simulated": data["Simulat"].astype(float).tolist(),
-            "corrected": data["Simulat dupa QM"].astype(float).tolist(),
+            "corrected": data[corrected_column].astype(float).tolist(),
         },
         separators=(",", ":"),
     )
