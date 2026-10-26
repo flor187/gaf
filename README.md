@@ -1,46 +1,34 @@
 # gaf
 
-gaf este un proiect pentru analiza debitelor râurilor utilizând date din GeoGlows și observări GRDC. Scopul principal este să colecteze, proceseze, compara și vizualiza date istorice și de prognoză hydrologică pentru stații relevante din România.
+Proiectul `gaf` descarcă, procesează, compară și vizualizează debite observate GRDC și date hidrologice GeoGlows pentru stații din România. Include date istorice retrospective, prognoze, corecții de bias, validare și benchmark-uri. Rezultatele sunt salvate în principal ca fișiere CSV și grafice HTML interactive Plotly.
 
-## Descriere generală
+Platforma poate fi consultată la [GeoGlows RFS](https://apps.geoglows.org/rfs#lon=25.00&lat=46.00&zoom=7.00&definition=Romania); pentru utilizarea platformei, consultați [webinarul GeoGlows RFS v2](https://training.geoglows.org/webinars/rfs-v2-webinar-4/).
 
-Proiectul combină:
-
-- date observate GRDC pentru debitul râurilor;
-- date istorice retrospective GeoGlows;
-- date de prognoză GeoGlows;
-- analize comparative și corecții de bias;
-- exporturi CSV și ploturi HTML/Plotly pentru interpretare vizuală.
-
-Platforma web GeoGlows poate fi accesată la [GeoGlows RFS](https://apps.geoglows.org/rfs#lon=25.00&lat=46.00&zoom=7.00&definition=Romania). Pentru instruire privind utilizarea platformei web, consultați [webinarul GeoGlows RFS v2](https://training.geoglows.org/webinars/rfs-v2-webinar-4/).
-
-## Cerințe
+## Cerințe și instalare
 
 - Python 3.12
-- Conda / Miniconda
-- acces la internet pentru descărcarea datelor din GeoGlows și GRDC
+- Conda sau Miniconda
+- acces la internet pentru descărcările GeoGlows și AWS S3
 
-## Instalare cu Conda
+Mediul este descris în `environment.yml` și include GeoGlows, `bias_correction`, `python-kaleido` și dependențele acestora.
 
-În rădăcina proiectului există fișierul `environment.yml` care definește mediul de lucru.
+Din rădăcina proiectului, creează și activează mediul:
 
-1. Deschide un terminal în directorul proiectului.
-2. Creează mediul Conda:
-
-```bash
+```powershell
 conda env create -f environment.yml
-```
-
-3. Activează mediul:
-
-```bash
 conda activate gaf
 ```
 
-4. Dacă mediul există deja și vrei să-l actualizezi:
+Pentru actualizarea unui mediu deja creat:
 
-```bash
+```powershell
 conda env update -f environment.yml --prune
+```
+
+Rulează scripturile din rădăcina proiectului, de exemplu:
+
+```powershell
+python scripts\02_download_historical.py
 ```
 
 ## Structura proiectului
@@ -49,140 +37,94 @@ conda env update -f environment.yml --prune
 gaf/
 ├── config/
 │   └── coords_stations.csv
+├── grdc_obs/                 # surse GRDC .txt și serii observate CSV/PNG
 ├── data_init/
-│   ├── historical/
-│   ├── forecast/
+│   ├── historical/           # serii GeoGlows orare, zilnice și lunare
+│   ├── forecast/             # statistici și ensemble-uri de prognoză
 │   ├── plot_historical/
-│   └── plot_forecast/
-├── grdc_obs/
-│   └── fișiere CSV și CMD ale stațiilor GRDC
+│   └── plot_forecast/        # grafice HTML pentru prognoză
 ├── analiza/
 │   ├── analiza_istorica/
-│   └── analiza_histograma/
-├── benchmark/
-├── scripts/
-│   ├── 01_aranjare_plotare_date_grdc.py
-│   ├── 02_download_historical.py
-│   ├── 03_download_forecast.py
-│   ├── 04_plot_forecast.py
-│   ├── 05_analiza_istorica.py
-│   ├── 06_analiza_prognoza.py
-│   └── 07_analiza_histograma.py
-├── 09_analiza_histograma_personalizat.py
+│   ├── analiza_prognoza/
+│   ├── analiza_histograma/
+│   ├── analiza_histograma_personalizat/
+│   ├── analiza_histograma_personalizat_sqm/
+│   ├── validare_prognoza/
+│   └── validare_histograma/
+├── benchmark/                # timpii de descărcare, analiză și plotare
+├── scripts/                  # scripturile 01–12
 ├── environment.yml
 ├── README.md
-├── LICENSE
-└── .gitignore
+└── LICENSE
 ```
 
-## Folderul `scripts`
+În `analiza/` se găsesc și directoare cu rezultate salvate pentru perioade sau rulări anterioare, precum `analiza_histograma_1961_1990/`, `analiza_histograma_1991_2020/` și `analiza_istorica_toti_anii/`. Scripturile 07–10 folosesc în prezent perioada 1991-01-01–2020-12-31; numele directoarelor cu rezultate mai vechi nu modifică perioada configurată în scripturi.
 
-Folderul `scripts/` conține fluxul principal de lucru al proiectului. În prezent, acesta include următoarele scripturi:
+## Configurarea stațiilor și a datelor GRDC
 
-### 1. `01_aranjare_plotare_date_grdc.py`
+`config/coords_stations.csv` este lista de stații folosită de scripturile de descărcare și analiză. Trebuie să conțină coloanele `NAME` și `LINKNO`; configurația actuală include și `LON`, `LAT`, `Area_kmp`, `GRDC_ID` și `Rau`. `NAME` este folosit la denumirea fișierelor, iar `LINKNO` identifică râul GeoGlows.
 
-- pregătește datele observate GRDC din fișierele originale;
-- extrage metadatele stației;
-- transformă datele într-un format util pentru analiză;
-- exportă CSV-ul final;
-- generează un grafic Plotly cu seria temporală observată.
+Datele GRDC sunt păstrate în `grdc_obs/`:
 
-### 2. `02_download_historical.py`
+- sursa originală: `<GRDC_ID>_Q_Day.Cmd.txt`;
+- seria prelucrată: `<NAME>_Q_Day.csv`, cu coloanele de dată și debit utilizate de analize.
 
-- descarcă date istorice GeoGlows pentru stațiile de interes;
-- lucrează pe rezoluții orare, zilnice și lunare;
-- salvează fișierele în `data_init/historical/`;
-- compară descărcarea direct din AWS S3 cu descărcarea prin API-ul GeoGlows;
-- creează benchmark-uri de performanță în folderul `benchmark/`.
+Scriptul `01_aranjare_plotare_date_grdc.py` citește o sursă `.Cmd.txt`, extrage metadatele și seria zilnică, apoi salvează CSV-ul și un grafic PNG. În script, ID-ul sursei este stabilit prin variabila `grdc_nr`; schimbă această valoare pentru a prelucra o altă stație. Fișierele GRDC prelucrate pentru stațiile proiectului sunt deja prezente în `grdc_obs/`.
 
-### 3. `03_download_forecast.py`
+## Scripturi
 
-- descarcă date de prognoză GeoGlows;
-- obține atât statistici (`forecast_stats`) cât și ensemble-uri (`forecast_ensembles`);
-- exportă fișiere separate pentru fiecare stație;
-- măsoară timpii de descărcare și salvează benchmark-ul.
+Toate scripturile se află în `scripts/` și se rulează cu mediul `gaf` activ.
 
-### 4. `04_plot_forecast.py`
+| Script | Rol și rezultate |
+| --- | --- |
+| `01_aranjare_plotare_date_grdc.py` | Prelucrează o sursă GRDC `.Cmd.txt`, salvează seria observată CSV și graficul PNG în `grdc_obs/`. ID-ul GRDC se selectează în script prin `grdc_nr`. |
+| `02_download_historical.py` | Descarcă serii GeoGlows retrospective orare, zilnice și lunare pentru stațiile configurate. Compară descărcarea AWS Zarr cu API-ul GeoGlows; scrie fișierele în `data_init/historical/` și timpii în `benchmark/benchmark_historical.csv`. |
+| `03_download_forecast.py` | Descarcă statistici și ensemble-uri pentru data curentă, atât în interogări grupate, cât și individuale pe stație. Salvează CSV-urile în `data_init/forecast/` și timpii în `benchmark/benchmark_forecast.csv`. |
+| `04_plot_forecast.py` | Generează grafice HTML pentru prognoze obținute prin API și pentru fișierele CSV individuale. Salvează graficele în `data_init/plot_forecast/` și timpii în `benchmark/benchmark_ploting.csv`. |
+| `05_analiza_istorica.py` | Compară observațiile GRDC și istoricul GeoGlows pentru 1991–2020. Aplică corecția GeoGlows și Basic Quantile Mapping, salvează serii CSV, tabele HTML și grafice în `analiza/analiza_istorica/`; înregistrează durata în `benchmark_05_analiza_istorica.csv`. |
+| `06_analiza_prognoza.py` | Corectează statisticile și ensemble-urile de prognoză cu `geoglows.bias.correct_forecast`, folosind observațiile GRDC și istoricul comun. Salvează CSV-uri și grafice în `analiza/analiza_prognoza/`; înregistrează durata în `benchmark_06_analiza_prognoza.csv`. |
+| `07_analiza_histograma.py` | Compară distribuțiile și seriile GRDC/GeoGlows înainte și după Basic Quantile Mapping pentru 1991–2020. Include histograme, cuantile, NSE, PBIAS și KGE-2012; salvează HTML-urile `_histograma_bqm.html` în `analiza/analiza_histograma/`. |
+| `08_analiza_histograma_sqm.py` | Aceeași analiză ca scriptul 07, folosind Monthly Quantile Mapping din GeoGlows; salvează HTML-urile `_histograma_sqm.html` în `analiza/analiza_histograma/`. |
+| `09_analiza_histograma_personalizat.py` | Variantă interactivă pentru Basic Quantile Mapping. Zoom-ul pe seriile temporale sau intervalul introdus manual actualizează seriile, histogramele, cuantilele și indicatorii; salvează în `analiza/analiza_histograma_personalizat/`. |
+| `10_analiza_histograma_personalizat_sqm.py` | Variantă interactivă pentru Monthly Quantile Mapping, cu actualizări de interval ca în scriptul 09; reutilizează calculul și graficul SQM din scriptul 08. Salvează în `analiza/analiza_histograma_personalizat_sqm/`. |
+| `11_validare_prognoza.py` | Folosește istoricul GeoGlows din 1985–1990 ca perioadă de validare și GRDC plus GeoGlows din 1991–2020 pentru calibrare. Aplică Monthly Quantile Mapping lună cu lună și salvează seria corectată și graficul în `analiza/validare_prognoza/`; scrie benchmark-ul `benchmark_11_validare_prognoza.csv`. |
+| `12_validare_histograma_sqm.py` | Compară observațiile GRDC, istoricul GeoGlows și seria corectată din validarea 1985–1990 prin serii temporale, histograme, cuantile și indicatori. Citește rezultatul scriptului 11 și salvează graficele în `analiza/validare_histograma/`. |
 
-- generează ploturi pentru prognozele de debit;
-- construiește grafice pentru datele obținute direct din API și din fișierele CSV;
-- exportă rezultate HTML în `data_init/plot_forecast/`;
-- compară timpii de plotare și salvarea rezultatelor.
+## Fluxuri de lucru
 
-### 5. `05_analiza_istorica.py`
+### Analiza istorică și prognoza curentă
 
-- comparează datele istorice GeoGlows cu observațiile GRDC;
-- aplică corectarea de bias din GeoGlows;
-- testează și salvează rezultate de bias correction cu metode Quantile Mapping;
-- generează metrici statistice HTML și grafice comparative;
-- exportă fișiere în folderul `analiza/analiza_istorica/`.
+1. Verifică stațiile din `config/coords_stations.csv` și fișierele GRDC din `grdc_obs/`.
+2. Dacă este necesar, prelucrează sursele GRDC cu scriptul 01, selectând ID-ul în `grdc_nr`.
+3. Descarcă istoricul cu scriptul 02.
+4. Pentru analiza prognozei curente, descarcă datele cu scriptul 03 și generează graficele cu scriptul 04.
+5. Rulează scriptul 05 pentru analiza istorică și/sau scriptul 06 pentru prognoza curentă.
 
-### 6. `06_analiza_prognoza.py`
+### Analiza distribuțiilor și Monthly Quantile Mapping
 
-- compară prognozele GeoGlows cu observațiile GRDC;
-- aplică corecția de bias și exportă seriile și graficele prognozelor.
+- Rulează scriptul 07 pentru Basic Quantile Mapping sau scriptul 08 pentru Monthly Quantile Mapping.
+- Rulează scriptul 09 pentru analiza interactivă Basic QM sau scriptul 10 pentru analiza interactivă Monthly QM. Aceste scripturi citesc direct seriile GRDC și istoricul zilnic GeoGlows.
 
-### 7. `07_analiza_histograma.py`
+### Validarea perioadei istorice
 
-- compară distribuțiile debitelor observate GRDC cu cele GeoGlows, înainte și după Quantile Mapping;
-- afișează perioada analizată, cuantilele, indicatorii NSE/PBIAS și KGE-2009 (KGE, r, alpha, beta), precum și seriile temporale în grafice Plotly interactive;
-- exportă câte un fișier HTML per stație, cu sufixul `_histograma_bqm.html`, în `analiza/analiza_histograma/`.
+1. Rulează scriptul 02 pentru a avea seria zilnică retrospectivă GeoGlows.
+2. Rulează scriptul 11 pentru corectarea Monthly Quantile Mapping în perioada 1985–1990, calibrată pe 1991–2020.
+3. Rulează scriptul 12 pentru graficele comparative ale perioadei de validare.
 
-### 9. `09_analiza_histograma_personalizat.py`
+## Fișiere de benchmark
 
-- generează analiza QM și serii temporale interactive pe baza scriptului `07_analiza_histograma.py`;
-- la zoom pe oricare dintre seriile temporale, recalculează indicatorii, cuantilele și histogramele pentru intervalul vizibil;
-- permite introducerea manuală a datelor de început și de sfârșit, cu actualizarea acelorași rezultate;
-- exportă fișierele HTML per stație în `analiza/analiza_histograma_personalizat/`.
+Scripturile salvează măsurătorile de timp în următoarele fișiere din `benchmark/`:
 
-## Flux de lucru recomandat
+- `benchmark_historical.csv` — comparația descărcărilor istorice AWS și API;
+- `benchmark_forecast.csv` — descărcarea prognozei;
+- `benchmark_ploting.csv` — generarea graficelor de prognoză;
+- `benchmark_05_analiza_istorica.csv` și `benchmark_06_analiza_prognoza.csv` — analizele istorice și de prognoză;
+- `benchmark_11_validare_prognoza.csv` — validarea perioadei istorice.
 
-În general, ordinea de rulare este:
+## Observații
 
-1. pregătirea datelor GRDC cu `01_aranjare_plotare_date_grdc.py`;
-2. descărcarea datelor istorice cu `02_download_historical.py`;
-3. descărcarea datelor de prognoză cu `03_download_forecast.py`;
-4. generate ploturi pentru prognoză cu `04_plot_forecast.py`;
-5. analiza comparativă istorică cu `05_analiza_istorica.py`;
-6. analiza prognozei cu `06_analiza_prognoza.py`;
-7. generarea histogramelor comparative cu `07_analiza_histograma.py`.
-8. generarea analizelor interactive pe intervalul vizibil cu `09_analiza_histograma_personalizat.py`.
-
-## Descarcarea datelor GRDC
-
-Datele de la GRDC sunt folosite ca referință observată pentru validarea și corectarea datelor modelate GeoGlows. În acest proiect, informațiile GRDC sunt preluate sub formă de fișiere separate pentru fiecare stație hidrometrică, în general cu denumirea:
-
-```text
-<station_id>_Q_Day.Cmd.txt
-```
-
-Exemplu:
-
-```text
-6744600_Q_Day.Cmd.txt
-```
-
-Aceste fișiere conțin două tipuri de informații:
-
-- metadate ale stației (nume, coordonate, unități de măsură, etc.);
-- seriile temporale de debit zilnic, în format text cu separatori specifici.
-
-În scriptul `01_aranjare_plotare_date_grdc.py` se face următorul proces:
-
-1. se deschide fișierul GRDC pentru o stație;
-2. se citesc liniile de metadate care încep cu `#`;
-3. se extrag câmpuri precum `Station`, `Latitude (DD)`, `Longitude (DD)`;
-4. datele propriu-zise sunt citite cu `pandas.read_csv(..., sep=';', comment='#')`;
-5. coloana `YYYY-MM-DD` este convertită în index temporal;
-6. rezultatul este salvat într-un fișier CSV în folderul `grdc_obs/`;
-7. se generează un grafic Plotly cu seria de debite observate.
-
-Astfel, pentru fiecare stație GRDC se obține un fișier CSV gata de utilizare în analiza comparativă cu datele istorice GeoGlows.
-
-În acest proiect, fișierele GRDC aduse în lucru sunt deja stocate local în folderul `grdc_obs/`, deci fluxul de lucru este: descărcare / pregătire locală a datelor, apoi procesarea lor prin scripturile de cod.
-
-## Note
-
-- Majoritatea scripturilor presupun că rulezi comanda din directorul proiectului și că `config/coords_stations.csv` există și este corect populat.
-- Fișierele generate sunt în principal CSV, HTML și grafice Plotly.
-- Proiectul este orientat către cercetarea și evaluarea performanței modelelor de debit în contextul hydrologiei și predictivului pe bază de GeoGlows.
+- Scripturile folosesc `config/coords_stations.csv` pentru stațiile analizate și se bazează pe fișierele de intrare corespunzătoare din `grdc_obs/`, `data_init/historical/` și `data_init/forecast/`.
+- Scripturile de descărcare au nevoie de conexiune la internet și pot solicita datele GeoGlows pentru data curentă.
+- Scripturile 07–10 folosesc perioada 1991–2020; scripturile 11–12 folosesc perioada de validare 1985–1990 și perioada de calibrare 1991–2020.
+- Fișierele HTML Plotly pot încărca biblioteca Plotly de pe CDN, deci vizualizarea lor poate necesita conexiune la internet.
+- Proiectul este distribuit sub licența MIT; detaliile sunt în `LICENSE`.
