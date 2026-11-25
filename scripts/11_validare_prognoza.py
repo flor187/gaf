@@ -1,11 +1,11 @@
 '''
-Acest script are rolul de a analiza datele istorice de la geoglows pentru statiile de interes de la GRDC.
-Testez metoda initiala de bias correction care e disponibila in geoglows. 
-Mai adaug o modalitate de corectie Quantile Mapping. E provenita din libraria aceasta
+This script analyzes historical GeoGlows data for the stations of interest from GRDC.
+It tests the initial bias-correction method available in GeoGlows.
+It also adds a Quantile Mapping correction from this library:
 https://pankajkarman.github.io/bias_correction/bias_correction.html#installation
-Include o perioada de validare a prognozelor
-Prognozele le va citi tot din historical geoglows si grdc
-Are functie de validare personalizata a perioadei de prognoza (1985-1990) cu corectie bias pe baza perioadei de calibrare (1991-2020)
+It includes a forecast validation period.
+Forecast data is read from historical GeoGlows and GRDC data.
+It provides custom validation for the forecast period (1985-1990) with bias correction based on the calibration period (1991-2020).
 '''
 
 # importam librariile necesare
@@ -20,27 +20,27 @@ from geoglows.bias import _flow_and_probability_mapper
 
 def correct_validation_period(sim_valid, sim_calib, obs_calib):
     """
-    Aplică corecția MEQM antrenată pe perioada de calibrare (1991-2020)
-    pe perioada de validare (1985-1990), lună cu lună.
+    Apply the MEQM correction trained on the calibration period (1991-2020)
+    to the validation period (1985-1990), month by month.
     
     Args:
-        sim_valid  : simulat GEOGloWS 1985-1990
-        sim_calib  : simulat GEOGloWS 1991-2020  (antrenare CDF simulat)
-        obs_calib  : observat GRDC  1991-2020    (antrenare CDF observat)
+        sim_valid  : GeoGlows simulation for 1985-1990
+        sim_calib  : GeoGlows simulation for 1991-2020 (simulated CDF training)
+        obs_calib  : GRDC observations for 1991-2020 (observed CDF training)
     Returns:
-        DataFrame cu valorile corectate pentru 1985-1990
+        DataFrame containing corrected values for 1985-1990
     """
     result = sim_valid.copy()
     
     for month in range(1, 13):
-        # CDF-uri construite EXCLUSIV din perioada de calibrare
+        # CDFs built exclusively from the calibration period
         sim_m = sim_calib[sim_calib.index.month == month].dropna()
         obs_m = obs_calib[obs_calib.index.month == month].dropna()
         
         to_prob = _flow_and_probability_mapper(sim_m, to_probability=True, extrapolate=True)
         to_flow = _flow_and_probability_mapper(obs_m, to_flow=True,        extrapolate=True)
         
-        # Aplicare pe valorile din luna respectivă din 1985-1990
+        # Apply to values from the corresponding month in 1985-1990
         mask = result.index.month == month
         vals = result.loc[mask].dropna()
         result.loc[vals.index] = to_flow(to_prob(vals.values))
@@ -49,7 +49,7 @@ def correct_validation_period(sim_valid, sim_calib, obs_calib):
 
 t0 = datetime.now()
 
-# stabilire cai pentru fisierele de date
+# Set paths for data files
 cwd = Path.cwd()
 fila_statii = os.path.join(cwd, 'config', 'coords_stations.csv')
 data_folder_hist = os.path.join(cwd, 'data_init', 'historical')
@@ -61,11 +61,11 @@ end_date = pd.Timestamp('2020-12-31')
 start_validare = pd.Timestamp('1985-01-01')
 end_validare = pd.Timestamp('1990-12-31')
 
-# asiguram existenta folderului de export
+# Ensure export folders exist
 Path(data_folder_validare).mkdir(parents=True, exist_ok=True)
 Path(data_benchmark).mkdir(parents=True, exist_ok=True)
 
-# incarcare datele cu statiile de interes
+# Load the stations of interest
 df_stations = pd.read_csv(fila_statii)
 names = df_stations['NAME'].tolist()
 
@@ -73,17 +73,17 @@ benchmark_df = pd.DataFrame(columns=['tip', 'durata'])
 
 
 for name in names:
-    # deschidem si pregatim pentru datele observate de la grdc
+    # Open and prepare the GRDC observed data
     df_grdc = pd.read_csv(os.path.join(data_folder_grdc, f'{name}_Q_Day.csv'))
     df_grdc['date'] = pd.to_datetime(df_grdc['date'])
     df_grdc = df_grdc.dropna(subset=['date']).sort_values('date').set_index('date')
     df_grdc = df_grdc.loc[start_date:end_date]
 
-    # deschidem si pregatim pentru datele istorice de la geoglows
+    # Open and prepare the GeoGlows historical data
     df_hist = pd.read_csv(os.path.join(data_folder_hist, f'{name}_historical_Q_Daily.csv'))
     df_hist['time'] = pd.to_datetime(df_hist['time'])
     df_hist = df_hist.dropna(subset=['time']).sort_values('time').set_index('time')
-    # filtram prognnoza pentru validare din perioada 1985-1990 de pe df_hist
+    # Filter the forecast validation period 1985-1990 from df_hist
     df_prg = df_hist.loc[start_validare:end_validare]
     df_hist = df_hist.loc[start_date:end_date]
 
@@ -98,22 +98,22 @@ for name in names:
     #df_prg_cr = geoglows.bias.correct_forecast(forecast_data=df_prg, simulated_data=df_hist, observed_data=df_grdc, use_month=0)
     df_prg_cr = correct_validation_period(sim_valid=df_prg, sim_calib=df_hist, obs_calib=df_grdc)
 
-    # salvare dataframe corectat 
+    # Save corrected dataframe
     df_prg_cr.to_csv(os.path.join(data_folder_validare, f'{name}_forecast_prg_gw.csv'))   
 
-    # creare grafice html si salvare
+    # Create and save HTML chart
     fig_prg = geoglows.plots.retrospective(df_prg_cr, plot_type='plotly', plot_titles=[f" {name}"])
     fig_prg.write_html(os.path.join(data_folder_validare, f'{name}_forecast_prg_gw.html'), include_plotlyjs='cdn')
 
-    print(f'Am facut pentru statia {name}')
+    print(f'Completed analysis for station {name}')
 
-# la quantile mapping momentan e greu de facut fiindca trebuie luate cate o coloana din prognoza in parte
+# Quantile Mapping is currently difficult because each forecast column must be processed separately
 
 t1 = datetime.now()
-print(f'Durata analizei si plotarii istorice: {t1 - t0}') 
+print(f'Duration of validation analysis and plotting: {t1 - t0}')
 benchmark_df.loc[len(benchmark_df)] = {'tip': 'analiza_plot', 'durata': t1 - t0}
 # saLvam benchmark-ul intr-un fisier csv
 benchmark_file = os.path.join(data_benchmark, 'benchmark_11_validare_prognoza.csv')
 benchmark_df.to_csv(benchmark_file, index=False)
-print('Toate datele au fost analizate si plotate cu succes!')
+print('All data was analyzed and plotted successfully!')
 print('FB')

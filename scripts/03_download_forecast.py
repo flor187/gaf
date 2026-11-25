@@ -1,10 +1,10 @@
 '''
-Acest script are rolul de a descarca datele de prognoza de la geogglows pentru statiile de interes de la GRDC.
-Interogarea se face pe baza id-ului LINKNO al statiei, iar datele sunt descarcate initial in format zarr.
-Ulterior pentru comparatie salvam si datele descarcate prin API-ul geoglows, pentru a vedea diferentele de timp de descarcare.
+This script downloads forecast data from GeoGlows for the stations of interest from GRDC.
+Queries use the station LINKNO, and the data is initially downloaded in Zarr format.
+For comparison, the data downloaded through the GeoGlows API is also saved to compare download times.
 '''
 
-# importam librariile necesare
+# Import required libraries
 import os
 import xarray as xr
 import pandas as pd
@@ -14,29 +14,29 @@ import geoglows
 
 t0 = datetime.now()
 
-# stabilire cai pentru fisierele de date
+# Set paths for data files
 cwd = Path.cwd()
 fila_statii = os.path.join(cwd, 'config', 'coords_stations.csv')
 data_folder_fcst = os.path.join(cwd, 'data_init', 'forecast')
 data_benchmark = os.path.join(cwd, 'benchmark')
 
-# asiguram existenta folderului de export
+# Ensure the export folders exist
 Path(data_folder_fcst).mkdir(parents=True, exist_ok=True)
 Path(data_benchmark).mkdir(parents=True, exist_ok=True)
 
-# incarcare datele cu statiile de interes
+# Load the stations of interest
 df_stations = pd.read_csv(fila_statii)
 reachs = df_stations['LINKNO'].tolist()
 names = df_stations['NAME'].tolist()
 
 benchmark_df = pd.DataFrame(columns=['tip', 'durata'])
 
-# GREU DE DESCARCAT DIN AWS S3, DEOARECE TREBUIE COMPUS ZILNIC LINKUL
-# Asadar, pentru descarcare folosim API-ul geoglows
+# DOWNLOAD IS DIFFICULT FROM AWS S3 BECAUSE THE DAILY LINK MUST BE CONSTRUCTED
+# Therefore, the GeoGlows API is used for the download
 t1 = datetime.now()
 data = t1.strftime('%Y%m%d')
-# se pare ca trebuie sa revin cu o zi in urma
-# data = (t1 - timedelta(days=1)).strftime('%Y%m%d') # acesta linie se va comenta dupa ce se rezolva problema cu descarcarea datelor de prognoza pentru ziua curenta
+# It may be necessary to go back one day
+# data = (t1 - timedelta(days=1)).strftime('%Y%m%d') # Uncomment this line if the current-day forecast download problem is resolved
 
 all_stats_xr = geoglows.data.forecast_stats(river_id=reachs, date=data, data_source='aws', format='xarray' )
 all_ens_df = geoglows.data.forecast_ensembles(river_id=reachs, date=data, data_source='aws', format='df' )
@@ -54,39 +54,39 @@ for i in range(len(reachs)):
     station_df_e = station_df_e.drop(columns=['river_id'])
     output_filename_e = os.path.join(data_folder_fcst, f'{locname}_forecast_ensembles.csv')
     station_df_e.to_csv(output_filename_e, index=False)
-    print(f'Datele de prognoza stats pentru statia {locname} au fost salvate in fisierul: {output_filename_s}')
-    print(f'Datele de prognoza ensembles pentru statia {locname} au fost salvate in fisierul: {output_filename_e}')
+    print(f'Forecast statistics for station {locname} were saved to: {output_filename_s}')
+    print(f'Forecast ensembles for station {locname} were saved to: {output_filename_e}')
 
 t2 = datetime.now()
-print(f'Durata descarcarii toate pe API datelor de prognoza: {t2 - t1}') 
+print(f'Duration of batched forecast API download: {t2 - t1}')
 benchmark_df.loc[len(benchmark_df)] = {'tip': 'forecast_all_api', 'durata': t2 - t1}
 
 t3 = datetime.now()
-# acum incercam sa facem bucla si sa interogam din API cate o statie in parte
+# Now loop through the API and query each station separately
 for i in range(len(reachs)):
     reach = reachs[i]
     locname = names[i].replace(' ', '_')
     stats_df = geoglows.data.forecast_stats(river_id=reach, date=data, data_source='aws', format='df' )
     ens_df = geoglows.data.forecast_ensembles(river_id=reach, date=data, data_source='aws', format='df' )
-    # salvarea ambelor tipuri de date in fisiere csv
+    # Save both types of data to CSV files
     output_filename_s = os.path.join(data_folder_fcst, f'{locname}_forecast_stats_individual.csv')
     stats_df.to_csv(output_filename_s, index=True)
     output_filename_e = os.path.join(data_folder_fcst, f'{locname}_forecast_ensembles_individual.csv')
     ens_df.to_csv(output_filename_e, index=True)
-    print(f'Datele de prognoza stats pentru statia {locname} au fost salvate in fisierul: {output_filename_s}')
-    print(f'Datele de prognoza ensembles pentru statia {locname} au fost salvate in fisierul: {output_filename_e}')    
+    print(f'Forecast statistics for station {locname} were saved to: {output_filename_s}')
+    print(f'Forecast ensembles for station {locname} were saved to: {output_filename_e}')
 
 t4 = datetime.now()
-print(f'Durata descarcarii individual pe API datelor de prognoza: {t4 - t3}') 
+print(f'Duration of individual forecast API download: {t4 - t3}')
 benchmark_df.loc[len(benchmark_df)] = {'tip': f'forecast_individual_api', 'durata': t4 - t3}
 # adaugare timp total la interogari 
 benchmark_df.loc[len(benchmark_df)] = {'tip': f'forecast_total_api', 'durata': t4 - t1}
 # adaugare timp total pe tot scriptul
 benchmark_df.loc[len(benchmark_df)] = {'tip': f'forecast_total_script', 'durata': t4 - t0}  
 
-# saLvam benchmark-ul intr-un fisier csv
+# Save the benchmark to a CSV file
 benchmark_file = os.path.join(data_benchmark, 'benchmark_forecast.csv')
 benchmark_df.to_csv(benchmark_file, index=False)
-print('Toate datele de prognoza au fost descarcate cu succes!')
+print('All forecast data was downloaded successfully!')
 print('FB')
 

@@ -18,19 +18,19 @@ END_DATE = BASE_ANALYSIS["END_DATE"]
 def build_range_update_script(
     name: str,
     data: pd.DataFrame,
-    corrected_column: str = "Simulat dupa QM",
+    corrected_column: str = "Corrected Simulated - QM",
 ) -> str:
     source = json.dumps(
         {
             "dates": data.index.strftime("%Y-%m-%d").tolist(),
-            "observed": data["Observat"].astype(float).tolist(),
-            "simulated": data["Simulat"].astype(float).tolist(),
+            "observed": data["Observed"].astype(float).tolist(),
+            "simulated": data["Simulated"].astype(float).tolist(),
             "corrected": data[corrected_column].astype(float).tolist(),
         },
         separators=(",", ":"),
     )
     title_prefix = json.dumps(
-        f"Analiza distributiei si a cuantilelor - Statia: {name}"
+        f"Distribution and quantile analysis - Station: {name}"
     )
 
     script = r"""(function () {
@@ -205,7 +205,7 @@ def build_range_update_script(
 
     function tableValues(observed, simulated) {
         const labels = quantiles.map((value) => `Q ${Math.round(value * 100)}%`);
-        labels.push("Media aritmetica");
+        labels.push("Arithmetic mean");
         const observedValues = quantiles.map((value) => quantile(observed, value));
         const simulatedValues = quantiles.map((value) => quantile(simulated, value));
         observedValues.push(
@@ -300,15 +300,15 @@ def build_range_update_script(
     applyButton.addEventListener("click", () => {
         const range = [startInput.value, endInput.value];
         if (!range[0] || !range[1] || range[0] > range[1]) {
-            status.textContent = "Selecteaza un interval valid.";
+            status.textContent = "Select a valid interval.";
             return;
         }
         if (range[0] < fullRange[0] || range[1] > fullRange[1]) {
-            status.textContent = "Intervalul trebuie sa fie in perioada disponibila.";
+            status.textContent = "The interval must be within the available period.";
             return;
         }
         if (selectedIndexes(range).length === 0) {
-            status.textContent = "Nu exista date in intervalul selectat.";
+            status.textContent = "No data exists in the selected interval.";
             return;
         }
 
@@ -322,7 +322,7 @@ def build_range_update_script(
             "xaxis2.range": range
         }).then(() => updateRange(range, sequence)).catch((error) => {
             console.error("Nu s-a putut aplica intervalul selectat.", error);
-            status.textContent = "Intervalul nu a putut fi aplicat.";
+            status.textContent = "The interval could not be applied.";
         });
     });
 
@@ -352,20 +352,20 @@ def build_range_update_script(
             "xaxis.range": range,
             "xaxis2.range": range
         }).catch((error) => {
-            console.error("Nu s-au putut sincroniza axele temporale.", error);
+            console.error("The time axes could not be synchronized.", error);
         });
         const sequence = ++updateSequence;
         window.clearTimeout(updateTimer);
         updateTimer = window.setTimeout(() => {
             updateRange(range, sequence).catch((error) => {
-                console.error("Nu s-au putut actualiza statisticile intervalului.", error);
+                console.error("Interval statistics could not be updated.", error);
             });
         }, 100);
     });
 
     lastRangeKey = rangeKey(fullRange);
     updateRange(fullRange, ++updateSequence).catch((error) => {
-        console.error("Nu s-au putut initializa statisticile intervalului.", error);
+        console.error("Interval statistics could not be initialized.", error);
     });
 })();"""
     script = (
@@ -382,24 +382,24 @@ def analyze_station(name: str, output_folder: Path) -> Path:
         PROJECT_ROOT / "grdc_obs" / f"{name}_Q_Day.csv",
         "date",
         "Value",
-        "Observat",
+        "Observed",
     )
     simulated = read_flow_series(
         PROJECT_ROOT / "data_init" / "historical" / f"{name}_historical_Q_Daily.csv",
         "time",
         "Q",
-        "Simulat",
+        "Simulated",
     )
     aligned = pd.concat([observed, simulated], axis=1, join="inner").dropna()
     if aligned.empty:
-        raise ValueError(f"Nu exista date comune valide pentru statia {name}.")
+        raise ValueError(f"No valid common data exists for station {name}.")
 
     correction = BASE_ANALYSIS["BiasCorrection"](
-        obs_data=aligned["Observat"],
-        mod_data=aligned["Simulat"],
-        sce_data=aligned["Simulat"],
+        obs_data=aligned["Observed"],
+        mod_data=aligned["Simulated"],
+        sce_data=aligned["Simulated"],
     )
-    aligned["Simulat dupa QM"] = correction.correct(method="basic_quantile")
+    aligned["Corrected Simulated - QM"] = correction.correct(method="basic_quantile")
 
     figure = BASE_ANALYSIS["create_station_figure"](name, aligned)
     figure.update_layout(title=None, margin=dict(t=70, b=60, l=70, r=35))
@@ -416,16 +416,16 @@ def main() -> None:
     stations_file = PROJECT_ROOT / "config" / "coords_stations.csv"
     stations = pd.read_csv(stations_file)
     if "NAME" not in stations.columns:
-        raise ValueError(f"Coloana NAME lipseste din fisierul {stations_file}.")
+        raise ValueError(f"NAME column missing from file {stations_file}.")
 
     output_folder = PROJECT_ROOT / "analiza" / "analiza_histograma_personalizat"
     output_folder.mkdir(parents=True, exist_ok=True)
 
     for name in stations["NAME"].dropna().astype(str):
         output_file = analyze_station(name, output_folder)
-        print(f"Grafic generat: {output_file}")
+        print(f"Chart generated: {output_file}")
 
-    print("Analiza intervalelor personalizate s-a incheiat cu succes.")
+    print("Custom interval analysis completed successfully.")
 
 
 if __name__ == "__main__":
