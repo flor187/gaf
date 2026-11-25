@@ -1,25 +1,25 @@
 '''
-Acest script are scopul de a aranja datele din fișierul GRDC_OBS.txt într-un format mai ușor de utilizat pentru analiza ulterioară.
-Pentru Romania sunt disponibile date GRDC pentru 19 stații, iar pentru fiecare stație există un fișier text separat cu datele observate.
-Ca baza de pornire folosesc bucati de cod din Climaax Handbook, dar am modificat și adaptat pentru a se potrivi nevoilor mele.
+This script organizes data from the GRDC_OBS.txt file into a format that is easier to use for subsequent analysis.
+For Romania, GRDC data is available for 19 stations, with a separate text file containing observations for each station.
+As a starting point, I use code sections from the Climaax Handbook, modified and adapted to my needs.
 Link workflow climaax: https://handbook.climaax.eu/notebooks/workflows/FLOODS/04_River_discharge_analysis/hazard_assessment_compare_to_observations_GRDC.html
 
 '''
 
-# importarea librariilor necesare
+# Import required libraries
 import os
 import pandas as pd
 from pathlib import Path
 import plotly.graph_objects as go
 
-# stabilire cai pentru fisierele de date
+# Set paths for data files
 cwd = Path.cwd()
 data_folder_obs = os.path.join(cwd, 'grdc_obs')
 
-# Fiindca sunt doar 19 statii id-ul se pune manual pentru fiecare statie in parte. 
+# Because there are only 19 stations, the ID is set manually for each station.
 grdc_nr = 6744600
 
-# incarcare date observate grdc format initial (.txt pentru fiecare statie)
+# Load the initial GRDC observed-data format (.txt for each station)
 filename = os.path.join(data_folder_obs, f'{grdc_nr}_Q_Day.Cmd.txt')
 metadata = {}
 with open(filename, 'r', encoding='cp1252') as f:
@@ -38,7 +38,7 @@ lon = float(metadata.get('Longitude (DD)', 'nan'))
 loc = [lon, lat]
 print(f'Station {locname}: {loc}')
 
-# creare dataframe cu datele observate
+# Create a dataframe with the observed data
 df_obs = pd.read_csv(
     filename,
     comment='#',
@@ -52,11 +52,11 @@ df_obs = df_obs.drop(columns='hh:mm').rename(columns={'YYYY-MM-DD': 'date'})
 df_obs['date'] = pd.to_datetime(df_obs['date'], format='%Y-%m-%d')
 df_obs.set_index('date', inplace=True)
 
-# exportare dataframe cu datele observate intr-un fisier csv
+# Export the observed-data dataframe to a CSV file
 output_filename = os.path.join(data_folder_obs, f'{locname}_Q_Day.csv')
 df_obs.to_csv(output_filename, index=True)
 
-#plotarea datelor observate
+# Plot the observed data
 # Create a figure
 fig = go.Figure()
 fig.add_trace(go.Scatter(
@@ -75,7 +75,7 @@ fig.update_layout(
 )
 
 # Show the figure
-# Graficul se deschide intr-un browser web si poate fi analizat prin zoom in si zoom out, dar si prin selectarea unei anumite perioade de timp.
+# The chart opens in a web browser and can be analyzed with zoom controls or by selecting a time period.
 fig.show()
 
 # Save figure

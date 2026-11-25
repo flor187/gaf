@@ -1,6 +1,6 @@
 
 
-"""Compara distributiile si seriile de debite inainte si dupa Quantile Mapping."""
+"""Compare discharge distributions and series before and after Quantile Mapping."""
 
 from pathlib import Path
 
@@ -26,13 +26,13 @@ def read_flow_series(
 ) -> pd.Series:
     """Read, validate, and return a finite flow series indexed by date."""
     if not file_path.is_file():
-        raise FileNotFoundError(f"Fisierul necesar nu exista: {file_path}")
+        raise FileNotFoundError(f"Required file does not exist: {file_path}")
 
     data = pd.read_csv(file_path)
     missing_columns = {date_column, flow_column}.difference(data.columns)
     if missing_columns:
         raise ValueError(
-            f"{file_path} nu contine coloanele necesare: "
+            f"{file_path} does not contain the required columns: "
             f"{', '.join(sorted(missing_columns))}"
         )
 
@@ -42,7 +42,7 @@ def read_flow_series(
     data = data[np.isfinite(data[flow_column])]
 
     if data[date_column].duplicated().any():
-        raise ValueError(f"Date duplicate in fisierul: {file_path}")
+        raise ValueError(f"Duplicate dates in file: {file_path}")
 
     series = data.set_index(date_column)[flow_column].sort_index()
     series.name = series_name
@@ -97,7 +97,7 @@ def add_quantile_table(
     column: int,
 ) -> None:
     quantile_labels = [f"Q {quantile:.0%}" for quantile in QUANTILES]
-    quantile_labels.append("Media aritmetica")
+    quantile_labels.append("Arithmetic mean")
     observed_quantiles = [f"{observed.quantile(q):.2f}" for q in QUANTILES]
     observed_quantiles.append(f"{observed.mean():.2f}")
     simulated_quantiles = [f"{simulated.quantile(q):.2f}" for q in QUANTILES]
@@ -106,7 +106,7 @@ def add_quantile_table(
     figure.add_trace(
         go.Table(
             header=dict(
-                values=["Cuantila", "Observat", "Simulat"],
+                values=["Quantile", "Observed", "Simulated"],
                 fill_color="#e8eef3",
                 align="left",
             ),
@@ -137,15 +137,15 @@ def add_performance_table(
     figure.add_trace(
         go.Table(
             header=dict(
-                values=["Indicator", "Valoare"],
+                values=["Indicator", "Value"],
                 fill_color="#e8eef3",
                 align="left",
             ),
             cells=dict(
                 values=[
-                    ["PBIAS (%) | eroare volum", "NSE | eroarea patratelor", "KGE-2012 | indice diagnoza", 
-                     "corelatia pearson | ritmul", "alpha | marimea variatiilor", "gama | forma variatiilor", 
-                     "beta | volumul"],
+                    ["PBIAS (%) | volume error", "NSE | squared error", "KGE-2012 | diagnosis index",
+                     "Pearson correlation | timing", "alpha | variability magnitude", "gamma | variability shape",
+                     "beta | volume"],
                     [
                         format_metric(pbias),
                         format_metric(nse),
@@ -167,9 +167,9 @@ def add_performance_table(
 
 
 def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
-    observed = data["Observat"]
-    simulated = data["Simulat"]
-    corrected = data["Simulat dupa QM"]
+    observed = data["Observed"]
+    simulated = data["Simulated"]
+    corrected = data["Corrected Simulated - QM"]
 
     all_flows = pd.concat([observed, simulated, corrected])
     bin_start = min(0.0, float(all_flows.min()))
@@ -207,13 +207,13 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
     )
 
     for column, simulated_series, simulated_name in (
-        (1, simulated, "Simulat GeoGlows"),
-        (3, corrected, "Simulat dupa QM"),
+        (1, simulated, "GeoGlows Simulated"),
+        (3, corrected, "Corrected Simulated - QM"),
     ):
         figure.add_trace(
             go.Histogram(
                 x=observed,
-                name="Observat GRDC",
+                name="GRDC Observed",
                 histnorm="percent",
                 xbins=bins,
                 opacity=0.65,
@@ -259,7 +259,7 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
                 x=data.index,
                 y=observed,
                 mode="lines",
-                name="Observat GRDC",
+                name="GRDC Observed",
                 line=dict(color="#2585c5", width=1),
                 legendgroup="observed",
                 showlegend=False,
@@ -282,49 +282,49 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
         )
 
         figure.update_xaxes(title_text="Data", row=1, col=column)
-        figure.update_xaxes(title_text="Debit (m³/s)", row=3, col=column)
-        figure.update_yaxes(title_text="Debit (m³/s)", row=1, col=column)
-        figure.update_yaxes(title_text="Zile in interval (%)", row=3, col=column)
+        figure.update_xaxes(title_text="Discharge (m³/s)", row=3, col=column)
+        figure.update_yaxes(title_text="Discharge (m³/s)", row=1, col=column)
+        figure.update_yaxes(title_text="Days in interval (%)", row=3, col=column)
 
     table_traces = [trace for trace in figure.data if isinstance(trace, go.Table)]
     title_specs = [
         (
-            "Seria de date inainte de Quantile Mapping",
+            "Time series before Quantile Mapping",
             figure.layout.xaxis.domain,
             figure.layout.yaxis.domain[1],
         ),
         (
-            "Seria de date dupa Quantile Mapping",
+            "Time series after Quantile Mapping",
             figure.layout.xaxis2.domain,
             figure.layout.yaxis2.domain[1],
         ),
         (
-            "Indicatori de performanta inainte",
+            "Performance metrics before",
             table_traces[0].domain.x,
             table_traces[0].domain.y[1],
         ),
         (
-            "Cuantile inainte",
+            "Quantiles before",
             table_traces[1].domain.x,
             table_traces[1].domain.y[1],
         ),
         (
-            "Indicatori de performanta dupa",
+            "Performance metrics after",
             table_traces[2].domain.x,
             table_traces[2].domain.y[1],
         ),
         (
-            "Cuantile dupa",
+            "Quantiles after",
             table_traces[3].domain.x,
             table_traces[3].domain.y[1],
         ),
         (
-            "Distributii inainte de Quantile Mapping",
+            "Distributions before Quantile Mapping",
             figure.layout.xaxis3.domain,
             figure.layout.yaxis3.domain[1],
         ),
         (
-            "Distributii dupa Quantile Mapping",
+            "Distributions after Quantile Mapping",
             figure.layout.xaxis4.domain,
             figure.layout.yaxis4.domain[1],
         ),
@@ -343,8 +343,8 @@ def create_station_figure(name: str, data: pd.DataFrame) -> go.Figure:
 
     figure.update_layout(
         title=(
-            f"Analiza distributiei si a cuantilelor - Statia: {name}"
-            f" - Perioada: {START_DATE:%Y-%m-%d} - {END_DATE:%Y-%m-%d}"
+            f"Distribution and quantile analysis - Station: {name}"
+            f" - Period: {START_DATE:%Y-%m-%d} - {END_DATE:%Y-%m-%d}"
         ),
         template="plotly_white",
         barmode="overlay",
@@ -362,24 +362,24 @@ def analyze_station(name: str, output_folder: Path) -> Path:
         PROJECT_ROOT / "grdc_obs" / f"{name}_Q_Day.csv",
         "date",
         "Value",
-        "Observat",
+        "Observed",
     )
     simulated = read_flow_series(
         PROJECT_ROOT / "data_init" / "historical" / f"{name}_historical_Q_Daily.csv",
         "time",
         "Q",
-        "Simulat",
+        "Simulated",
     )
     aligned = pd.concat([observed, simulated], axis=1, join="inner").dropna()
     if aligned.empty:
-        raise ValueError(f"Nu exista date comune valide pentru statia {name}.")
+        raise ValueError(f"No valid common data exists for station {name}.")
 
     correction = BiasCorrection(
-        obs_data=aligned["Observat"],
-        mod_data=aligned["Simulat"],
-        sce_data=aligned["Simulat"],
+        obs_data=aligned["Observed"],
+        mod_data=aligned["Simulated"],
+        sce_data=aligned["Simulated"],
     )
-    aligned["Simulat dupa QM"] = correction.correct(method="basic_quantile")
+    aligned["Corrected Simulated - QM"] = correction.correct(method="basic_quantile")
 
     figure = create_station_figure(name, aligned)
     output_file = output_folder / f"{name}_histograma_bqm.html"
@@ -391,16 +391,16 @@ def main() -> None:
     stations_file = PROJECT_ROOT / "config" / "coords_stations.csv"
     stations = pd.read_csv(stations_file)
     if "NAME" not in stations.columns:
-        raise ValueError(f"Coloana NAME lipseste din fisierul {stations_file}.")
+        raise ValueError(f"NAME column missing from file {stations_file}.")
 
     output_folder = PROJECT_ROOT / "analiza" / "analiza_histograma"
     output_folder.mkdir(parents=True, exist_ok=True)
 
     for name in stations["NAME"].dropna().astype(str):
         output_file = analyze_station(name, output_folder)
-        print(f"Grafic generat: {output_file}")
+        print(f"Chart generated: {output_file}")
 
-    print("Analiza histogramelor s-a incheiat cu succes.")
+    print("Histogram analysis completed successfully.")
 
 
 if __name__ == "__main__":

@@ -21,23 +21,23 @@ def analyze_station(name: str, output_folder: Path) -> Path:
         PROJECT_ROOT / "grdc_obs" / f"{name}_Q_Day.csv",
         "date",
         "Value",
-        "Observat",
+        "Observed",
     )
     simulated = read_flow_series(
         PROJECT_ROOT / "data_init" / "historical" / f"{name}_historical_Q_Daily.csv",
         "time",
         "Q",
-        "Simulat",
+        "Simulated",
     )
     aligned = pd.concat([observed, simulated], axis=1, join="inner").dropna()
     if aligned.empty:
-        raise ValueError(f"Nu exista date comune valide pentru statia {name}.")
+        raise ValueError(f"No valid common data exists for station {name}.")
 
     corrected = SQM_ANALYSIS["geoglows"].bias.correct_historical(
-        simulated_data=aligned[["Simulat"]],
-        observed_data=aligned[["Observat"]],
+        simulated_data=aligned[["Simulated"]],
+        observed_data=aligned[["Observed"]],
     )
-    aligned["Simulat dupa SQM"] = corrected["Corrected Simulated Streamflow"]
+    aligned["Corrected Simulated - SQM"] = corrected["Corrected Simulated Streamflow"]
 
     figure = SQM_ANALYSIS["create_station_figure"](name, aligned)
     figure.update_layout(title=None, margin=dict(t=70, b=60, l=70, r=35))
@@ -48,7 +48,7 @@ def analyze_station(name: str, output_folder: Path) -> Path:
         post_script=PERSONALIZED_ANALYSIS["build_range_update_script"](
             name,
             aligned,
-            corrected_column="Simulat dupa SQM",
+            corrected_column="Corrected Simulated - SQM",
         ),
     )
     return output_file
@@ -58,18 +58,18 @@ def main() -> None:
     stations_file = PROJECT_ROOT / "config" / "coords_stations.csv"
     stations = pd.read_csv(stations_file)
     if "NAME" not in stations.columns:
-        raise ValueError(f"Coloana NAME lipseste din fisierul {stations_file}.")
+        raise ValueError(f"NAME column missing from file {stations_file}.")
 
     output_folder = PROJECT_ROOT / "analiza" / "analiza_histograma_personalizat_sqm"
     output_folder.mkdir(parents=True, exist_ok=True)
 
     for name in stations["NAME"].dropna().astype(str):
         output_file = analyze_station(name, output_folder)
-        print(f"Grafic generat: {output_file}")
+        print(f"Chart generated: {output_file}")
 
     print(
-        "Analiza intervalelor personalizate cu Monthly Quantile Mapping "
-        "s-a incheiat cu succes."
+        "Custom interval analysis with Monthly Quantile Mapping "
+        "completed successfully."
     )
 
 
